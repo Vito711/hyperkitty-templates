@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{% block head_title %}{% endblock %}</title>
+    {% load static %}
+    <link href="{% static 'postorius/libs/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'django-mailman3/css/main.css' %}" rel="stylesheet">
+    <link href="{% static 'hyperkitty/css/hyperkitty.css' %}" rel="stylesheet">
+    <link href="{% static 'hyperkitty/libs/font-awesome/css/font-awesome.min.css' %}" rel="stylesheet">
+    <style>
+      .main-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .user-profile-content {
+        background: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .nav-pills {
+        margin-bottom: 20px;
+      }
+      .nav-pills .nav-link {
+        margin-right: 5px;
+        color: #0075D8 !important;
+      }
+      .nav-pills .nav-link.active {
+        color: white !important;
+        background-color: #0075D8 !important;
+      }
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      .gravatar {
+        text-align: center;
+      }
+      .navbar {
+        background-color: #0075D8 !important;
+      }
+      .navbar .nav-link {
+        color: rgba(255,255,255,0.9) !important;
+      }
+      .navbar .nav-link:hover {
+        color: white !important;
+      }
+      .navbar-brand {
+        color: white !important;
+      }
+      .dropdown-menu .dropdown-item {
+        color: #212529 !important;
+      }
+      .dropdown-menu .dropdown-item:hover {
+        background-color: #f8f9fa !important;
+      }
+    </style>
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">{{ request.site.domain }}</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="/postorius/lists">Lists</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/hyperkitty/archives">Archives</a>
+            </li>
+          </ul>
+          <ul class="navbar-nav">
+            {% if user.is_authenticated %}
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="userMenu" role="button" data-bs-toggle="dropdown">
+                {{ user.username }}
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{% url 'mm_user_profile' %}">Profile</a></li>
+                <li><a class="dropdown-item" href="{% url 'account_logout' %}">Sign out</a></li>
+              </ul>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'account_login' %}">Sign in</a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="main-content">
+      {% block content %}
+      {% endblock %}
+    </div>
+
+    <script src="{% static 'postorius/libs/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'hyperkitty/libs/jquery/jquery.min.js' %}"></script>
+  </body>
+</html>
