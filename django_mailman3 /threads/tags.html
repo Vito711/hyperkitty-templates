@@ -1,0 +1,144 @@
+{% load i18n %}
+<h3 id="tag-title">{% trans "tags" %} </h3>
+{% if thread.tags.count %}
+<ul class="list-inline">
+    {% for tag in thread.tags.distinct %}
+    <li>
+        <a href="{% url 'hk_search' %}?mlist={{thread.mailinglist.name}}&query=tag:{{tag.name|urlencode}}"
+           title="{% trans 'Search for tag' %} {{ tag.name|escape }}">{{ tag.name }}</a>
+        {% if user in tag.users.all %}
+        <form method="post" class="rmtag d-inline" action="{% url 'hk_tags' mlist_fqdn=thread.mailinglist.name threadid=thread.thread_id %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="rm" />
+            <input type="hidden" name="tag" value="{{ tag.name|escape }}" />
+            <button type="submit" class="btn btn-link btn-sm p-0 ms-1 text-danger" 
+                    style="font-size: 20px; line-height: 0.5; vertical-align: middle;">&times;</button>
+        </form>
+        {% endif %}
+        {% if not forloop.last %} <span>|</span> {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if user.is_authenticated %}
+<form id="add-tag-form" name="addtag" method="post" 
+      action="{% url 'hk_tags' mlist_fqdn=thread.mailinglist.name threadid=thread.thread_id %}"
+      data-autocompleteurl="{% url 'hk_suggest_tags' mlist_fqdn=thread.mailinglist.name threadid=thread.thread_id %}">
+    {% csrf_token %}
+    <div class="input-group">
+        <input type="text" name="tag" placeholder="{% trans 'Add a tag...' %}" 
+               class="form-control" title="{% trans 'use commas to add multiple tags' %}" 
+               required id="id_tag">
+        <div class="input-group-append">
+            <button type="submit" class="btn btn-outline-primary">{% trans "Add" %}</button>
+        </div>
+    </div>
+    <input type="hidden" name="action" value="add" id="id_action">
+</form>
+{% endif %}
+
+<script>
+$(document).ready(function() {
+    // Rimuovi tutti i gestori di evento submit esistenti
+    $('#add-tag-form').off('submit');
+
+    // Sovrascrivi completamente il comportamento di submit
+    $('#add-tag-form').on('submit', function(e) {
+        // Blocca completamente l'invio standard del form
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        var form = $(this);
+        var tagInput = form.find('#id_tag');
+        var tags = tagInput.val().split(',').map(s => s.trim()).filter(s => s);
+        
+        // Verifica tag duplicati
+        var existingTags = $('.list-inline a').map(function() {
+            return $(this).text().trim();
+        }).get();
+        
+        var duplicates = tags.filter(tag => existingTags.includes(tag));
+        if (duplicates.length > 0) {
+            alert('{% trans "Tag già esistente:" %} ' + duplicates.join(', '));
+            return false;
+        }
+        
+        $.ajax({
+            type: 'POST',
+            url: form.attr('action'),
+            data: form.serialize(),
+            success: function(response) {
+                // Mostra la lista dei tag se era nascosta
+                if ($('.list-inline').is(':hidden')) {
+                    $('.list-inline').show();
+                }
+
+                // Aggiungi dinamicamente i nuovi tag
+                tags.forEach(function(tag) {
+                    var newTagHtml = `
+                        <li>
+                            <a href="{% url 'hk_search' %}?mlist={{thread.mailinglist.name}}&query=tag:${encodeURIComponent(tag)}"
+                               title="{% trans 'Search for tag' %} ${tag}">
+                                ${tag}
+                            </a>
+                            {% if user in tag.users.all %}
+                            <form method="post" class="rmtag d-inline" action="{% url 'hk_tags' mlist_fqdn=thread.mailinglist.name threadid=thread.thread_id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="rm" />
+                                <input type="hidden" name="tag" value="${tag}" />
+                                <button type="submit" class="btn btn-link btn-sm p-0 ms-1 text-danger" 
+                                        style="font-size: 20px; line-height: 0.5; vertical-align: middle;">&times;</button>
+                            </form>
+                            {% endif %}
+                            <span>|</span>
+                        </li>
+                    `;
+                    
+                    // Crea la lista se non esiste
+                    if ($('.list-inline').length === 0) {
+                        $('<ul class="list-inline"></ul>').insertAfter('#tag-title');
+                    }
+                    
+                    $('.list-inline').append(newTagHtml);
+                });
+                
+                // Pulisci l'input
+                tagInput.val('');
+            },
+            error: function(xhr, status, error) {
+                console.error('{% trans "Errore durante l\'aggiunta del tag:" %}', error);
+                alert('{% trans "Impossibile aggiungere il tag. Riprova." %}');
+            }
+        });
+
+        // Restituisci false per bloccare completamente l'invio
+        return false;
+    });
+
+    // Gestione rimozione tag
+    $('.rmtag').on('submit', function(e) {
+        e.preventDefault();
+        var form = $(this);
+        
+        $.ajax({
+            type: 'POST',
+            url: form.attr('action'),
+            data: form.serialize(),
+            success: function(response) {
+                // Rimuovi l'elemento dal DOM
+                form.closest('li').remove();
+                
+                // Se non ci sono più tag, nascondi la lista
+                if ($('.list-inline li').length === 0) {
+                    $('.list-inline').hide();
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('{% trans "Errore durante la rimozione del tag:" %}', error);
+                alert('{% trans "Impossibile rimuovere il tag. Riprova." %}');
+            }
+        });
+    });
+});
+</script>
